@@ -24,7 +24,6 @@ export default defineConfig({
         icons: [{ src: 'moodzound.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any maskable' }]
       },
       // Los audios de mood_samples NO se precargan: se reproducen en streaming.
-      workbox: { navigateFallback: `${base}index.html`, globIgnores: ['mood_samples/**'], maximumFileSizeToCacheInBytes: 3_000_000 }
-    })
+workbox: { navigateFallback: `${base}index.html`, navigateFallbackDenylist: [/\/about\//], globIgnores: ['mood_samples/**', 'about/**'], maximumFileSizeToCacheInBytes: 3_000_000 }    })
   ]
 })
