@@ -1,0 +1,26 @@
+{
+  "name": "moodzound",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "samples": "node scripts/build-mood-manifest.mjs",
+    "dev": "npm run samples && vite",
+    "build": "npm run samples && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "browser-id3-writer": "^6.0.0",
+    "idb": "^8.0.0",
+    "lucide-react": "^0.468.0",
+    "music-metadata-browser": "^2.5.10",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.4",
+    "music-metadata": "^10.9.1",
+    "vite": "^6.0.5",
+    "vite-plugin-pwa": "^0.21.1"
+  }
+}
