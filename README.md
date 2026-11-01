@@ -1,29 +1,47 @@
 # MOODZOUND — Hi-Fi Player
 
-Reproductor de música personal (PWA, React + Vite). Tu biblioteca vive en el navegador (IndexedDB); nada se sube a ningún servidor.
+A personal Hi-Fi music player that runs entirely in your browser. Import your own folders, build playlists, edit tags and cover art, and export your MP3s. Your library stays on your device: nothing is uploaded to any server.
 
-## Funciones
-- Importar archivos o **carpetas completas con subcarpetas** (árbol a la izquierda, lista de reproducción a la derecha).
-- Listas múltiples, reordenables arrastrando; doble clic en una carpeta la agrega entera.
-- Editor de etiquetas y **editor de portada** (mover, zoom, estirar, rotar, inclinar, recorte 1:1).
-- Carpeta fija **mood_samples** con temas libres, siempre disponibles (streaming, no se copian al dispositivo).
-- Atajos: `Espacio` play/pausa · `N` siguiente · `P` anterior.
+**[Open the app](https://rolandcipher.github.io/moodzound/)** · **[Read the presentation](https://rolandcipher.github.io/moodzound/about/)**
 
-## Desarrollo
+## Features
+
+- **Whole-folder import.** Bring in a folder with all its subfolders. The folder tree sits on the left and your playlist on the right.
+- **Reorderable playlists.** Keep several playlists, drag tracks to reorder them, and double-click a folder to add all of it.
+- **Cover art editor.** Move, zoom, stretch, rotate and skew an image, then crop it to a square (1:1).
+- **Tag editing and export.** Edit title, artist, album and genre. For MP3 files, export a copy with embedded ID3 tags and cover art; the original file is never modified.
+- **Built-in `mood_samples` library.** A fixed folder of free-to-use tracks, always available and streamed on demand.
+- **Private by design.** The library is stored in the browser (IndexedDB).
+- **Installable.** Works as a PWA on desktop and mobile.
+- **Keyboard shortcuts.** `Space` play/pause · `N` next · `P` previous.
+
+## Tech stack
+
+React 18 · Vite · vite-plugin-pwa · IndexedDB (`idb`) · Canvas 2D · `music-metadata-browser` (tag reading) · `browser-id3-writer` (tag writing)
+
+## Run locally
+
 ```bash
 npm install
 npm run dev
 ```
 
-## mood_samples
-Poné los audios (mp3, flac, m4a, ogg, wav…) en `public/mood_samples/`, con las subcarpetas que quieras, y anotá fuente y licencia en `public/mood_samples/LICENSES.md`.
-`npm run dev` y `npm run build` los escanean solos y generan `manifest.json` (título, artista, duración, portada). No hace falta tocar código.
-Cada archivo debe pesar menos de 100 MB (límite de GitHub) y el sitio publicado, menos de 1 GB.
+## Project structure
 
-## Publicar en GitHub Pages (gratis)
-1. Creá un repositorio público (por ejemplo `moodzound`) y subí este proyecto a la rama `main`.
-2. En *Settings → Pages*, elegí **Source: GitHub Actions**.
-3. Cada `git push` despliega solo en `https://<usuario>.github.io/<repo>/`. La ruta se toma del nombre del repo.
+```
+src/App.jsx                       Main application
+src/CoverEditor.jsx               Standalone cover art editor
+src/db.js                         IndexedDB storage
+scripts/build-mood-manifest.mjs   Scans public/mood_samples at build time
+public/mood_samples/              Free-to-use tracks (see LICENSES.md)
+public/about/                     Project presentation page
+.github/workflows/deploy.yml      Automatic deploy to GitHub Pages
+```
 
-## Estructura
-`src/App.jsx` (app) · `src/CoverEditor.jsx` (editor de portada, módulo independiente) · `src/db.js` (almacenamiento) · `scripts/build-mood-manifest.mjs` (escáner de mood_samples).
+## Adding tracks to `mood_samples`
+
+Place audio files (mp3, flac, m4a, ogg, wav…) in `public/mood_samples/`, in any subfolders, and credit each one in `public/mood_samples/LICENSES.md`. The build script reads title, artist, duration and cover art and generates the catalog automatically.
+
+## Author
+
+Built by [rolandcipher](https://github.com/rolandcipher).
