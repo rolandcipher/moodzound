@@ -50,10 +50,10 @@ export default function App() {
   useEffect(() => {
     Promise.all([getAll('tracks'), getAll('playlists')])
       .then(([t, p]) => {
-        if (!p.length) { p = [{ id: 'default', name: 'Lista de reproducción', trackIds: [] }]; put('playlists', p[0]) }
+        if (!p.length) { p = [{ id: 'default', name: 'Playlist', trackIds: [] }]; put('playlists', p[0]) }
         setTracks(t); setPlaylists(p); setActivePlaylist(p[0].id)
       })
-      .catch(() => notify('No se pudo leer el almacenamiento local.'))
+      .catch(() => notify('Unable to read local storage.'))
     return () => urlsRef.current.forEach(url => URL.revokeObjectURL(url))
   }, [])
 
@@ -101,16 +101,16 @@ export default function App() {
   async function addIds(ids) {
     if (!pl) return
     const fresh = ids.filter(i => !pl.trackIds.includes(i))
-    if (!fresh.length) return notify('Ya están en la lista.')
+    if (!fresh.length) return notify('Already in the playlist.')
     const updated = { ...pl, trackIds: [...pl.trackIds, ...fresh] }
     await put('playlists', updated)
     setPlaylists(prev => prev.map(x => x.id === pl.id ? updated : x))
-    notify(`${fresh.length} tema(s) agregados a ${pl.name}.`)
+    notify(`${fresh.length} track(s) added to ${pl.name}.`)
   }
   const renderNode = (node, depth = 0) => [...node.kids.values()].sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true })).map(k => <div key={k.path}>
     <div className={`tree-row ${selFolder === k.path ? 'selected' : ''}`} style={{ paddingLeft: 6 + depth * 14 }}>
       <button className="tree-chev" onClick={() => toggleOpen(k.path)}>{k.kids.size ? (open.has(k.path) ? <ChevronDown size={14}/> : <ChevronRight size={14}/>) : <span style={{ width: 14 }}/>}</button>
-      <button className="tree-name" title="Doble clic: agregar carpeta a la lista" onClick={() => setSelFolder(k.path)} onDoubleClick={() => addIds(tracks.filter(t => inFolder(t, k.path)).sort(byPath).map(t => t.id))}><Folder size={14}/><span>{k.name}</span><small>{k.n}</small></button>
+      <button className="tree-name" title="Double-click to add folder to playlist" onClick={() => setSelFolder(k.path)} onDoubleClick={() => addIds(tracks.filter(t => inFolder(t, k.path)).sort(byPath).map(t => t.id))}><Folder size={14}/><span>{k.name}</span><small>{k.n}</small></button>
     </div>
     {open.has(k.path) && renderNode(k, depth + 1)}
   </div>)
@@ -146,7 +146,7 @@ export default function App() {
   async function importFiles(fileList) {
     const selected = [...(fileList || [])].filter(f =>
       f.type.startsWith('audio/') || /\.(mp3|wav|flac|m4a|ogg|aac)$/i.test(f.name))
-    if (!selected.length) return notify('Seleccioná archivos de audio compatibles.')
+    if (!selected.length) return notify('Select compatible audio files.')
     selected.sort((x, y) => (x.webkitRelativePath || x.name).localeCompare(y.webkitRelativePath || y.name, undefined, { numeric: true }))
     const known = new Set(tracks.map(t => (t.path || t.filename) + '|' + t.file?.size))
     setBusy(true)
@@ -161,15 +161,15 @@ export default function App() {
           const parsed = await parseBlob(file)
           metadata = {
             title: parsed.common.title || cleanName(file.name),
-            artist: parsed.common.artist || parsed.common.artists?.join(', ') || 'Artista desconocido',
-            album: parsed.common.album || 'Álbum desconocido',
+            artist: parsed.common.artist || parsed.common.artists?.join(', ') || 'Unknown Artist',
+            album: parsed.common.album || 'Unknown Album',
             year: parsed.common.year ? String(parsed.common.year) : '',
             genre: parsed.common.genre?.[0] || ''
           }
           const picture = parsed.common.picture?.[0]
           if (picture?.data) metadata.cover = new Blob([picture.data], { type: picture.format || 'image/jpeg' })
         } catch {
-          metadata = { title: cleanName(file.name), artist: 'Artista desconocido', album: 'Álbum desconocido', year: '', genre: '' }
+          metadata = { title: cleanName(file.name), artist: 'Unknown Artist', album: 'Unknown Album', year: '', genre: '' }
         }
         const track = {
           id: id(), file, filename: file.name, path, folder: path.split('/').slice(0, -1).join('/'), duration: 0,
@@ -182,9 +182,9 @@ export default function App() {
       }
       setTracks(prev => [...prev, ...added])
       if (!currentId && added[0]) setCurrentId(added[0].id)
-      notify(`${added.length} archivo(s) importado(s).`)
+      notify(`${added.length} file(s) imported.`)
     } catch (err) {
-      console.error(err); notify('Hubo un problema guardando los archivos. Revisá el espacio disponible.')
+      console.error(err); notify('There was a problem saving the files. Check available storage.')
     } finally {
       setBusy(false); setProgress('')
       if (fileInputRef.current) fileInputRef.current.value = ''
@@ -216,22 +216,22 @@ export default function App() {
   }
 
   async function createPlaylist() {
-    const name = window.prompt('Nombre de la playlist:')
+    const name = window.prompt('Playlist name:')
     if (!name?.trim()) return
     const p = { id: id(), name: name.trim(), trackIds: [] }
     await put('playlists', p)
     setPlaylists(prev => [...prev, p]); setActivePlaylist(p.id)
   }
   async function renamePlaylist(p) {
-    const name = window.prompt('Nuevo nombre:', p.name)
+    const name = window.prompt('New name:', p.name)
     if (!name?.trim()) return
     const updated = { ...p, name: name.trim() }
     await put('playlists', updated)
     setPlaylists(prev => prev.map(x => x.id === p.id ? updated : x))
   }
   async function deletePlaylist(p) {
-    if (!window.confirm(`¿Eliminar la playlist "${p.name}"?`)) return
-    if (playlists.length < 2) return notify('Tiene que quedar al menos una lista.')
+    if (!window.confirm(`Delete the playlist "${p.name}"?`)) return
+    if (playlists.length < 2) return notify('At least one playlist must remain.')
     await remove('playlists', p.id)
     const rest = playlists.filter(x => x.id !== p.id)
     setPlaylists(rest)
@@ -240,11 +240,11 @@ export default function App() {
   async function addToPlaylist(trackId) {
     if (!playlists.length) return createPlaylist()
     const p = playlists.find(x => x.id === activePlaylist) || playlists[0]
-    if (p.trackIds.includes(trackId)) return notify('Esa canción ya está en la playlist.')
+    if (p.trackIds.includes(trackId)) return notify('This track is already in the playlist.')
     const updated = { ...p, trackIds: [...p.trackIds, trackId] }
     await put('playlists', updated)
     setPlaylists(prev => prev.map(x => x.id === p.id ? updated : x))
-    notify(`Agregada a ${p.name}.`)
+    notify(`Added to ${p.name}.`)
   }
   async function reorder(from, to) {
     if (!pl || from == null || from === to) return
@@ -261,7 +261,7 @@ export default function App() {
     setPlaylists(prev => prev.map(x => x.id === p.id ? updated : x))
   }
   async function deleteTrack(track) {
-    if (!window.confirm(`¿Quitar "${track.title}" de MOODZOUND? El archivo original no se borra.`)) return
+    if (!window.confirm(`Remove "${track.title}" from MOODZOUND? The original file will not be deleted.`)) return
     await remove('tracks', track.id)
     const updatedPlaylists = playlists.map(p => ({ ...p, trackIds: p.trackIds.filter(x => x !== track.id) }))
     await Promise.all(updatedPlaylists.map(p => put('playlists', p)))
@@ -278,18 +278,18 @@ export default function App() {
     const updated = { ...editor, updatedAt: Date.now() }
     await put('tracks', updated)
     setTracks(prev => prev.map(t => t.id === updated.id ? updated : t))
-    setEditor(null); notify('Cambios guardados en la biblioteca MOODZOUND.')
+    setEditor(null); notify('Changes saved to the MOODZOUND library.')
   }
   function setEditorCover(file) {
     if (!file || !editor) return
-    if (!file.type.startsWith('image/')) return notify('Elegí un archivo de imagen.')
+    if (!file.type.startsWith('image/')) return notify('Select an image file.')
     setCropSrc(file)
   }
 
   async function exportEditedFile() {
     if (!editor) return
     if (extOf(editor.filename) !== 'mp3') {
-      notify('La escritura embebida está habilitada en esta versión para MP3. Para otros formatos, guardá los cambios en MOODZOUND.')
+      notify('Embedded metadata writing is supported for MP3 only in this version. For other formats, save your changes to MOODZOUND.')
       return
     }
     setBusy(true)
@@ -313,9 +313,9 @@ export default function App() {
       a.download = editor.filename.replace(/\.mp3$/i, '') + '-MOODZOUND.mp3'
       a.click()
       URL.revokeObjectURL(url)
-      notify('Archivo MP3 exportado con etiquetas ID3 y portada.')
+      notify('MP3 file exported with ID3 tags and embedded cover art.')
     } catch (err) {
-      console.error(err); notify('No se pudo escribir el MP3. Revisá el archivo y probá nuevamente.')
+      console.error(err); notify('Unable to write the MP3 file. Check the file and try again.')
     } finally { setBusy(false) }
   }
 
@@ -323,35 +323,35 @@ export default function App() {
   return <div className="app-shell">
     <header className="topbar">
       <div className="brand"><div className="brand-mark"><AudioLines size={21}/></div><div><b>MOODZOUND</b><span>PERSONAL HI-FI PLAYER</span></div></div>
-      <div className="top-status"><span className="status-dot"/> LOCAL LIBRARY <i/> {tracks.length} TRACKS{progress && <> <i/> IMPORTANDO {progress}</>}</div>
-      <button className="icon-button" title="Importar música" onClick={() => fileInputRef.current?.click()}><Plus size={18}/></button>
-      <button className="icon-button" title="Importar carpeta (con subcarpetas)" onClick={() => dirInputRef.current?.click()}><FolderPlus size={18}/></button>
+      <div className="top-status"><span className="status-dot"/> LOCAL LIBRARY <i/> {tracks.length} TRACKS{progress && <> <i/> IMPORTING {progress}</>}</div>
+      <button className="icon-button" title="Import music" onClick={() => fileInputRef.current?.click()}><Plus size={18}/></button>
+      <button className="icon-button" title="Import folder (including subfolders)" onClick={() => dirInputRef.current?.click()}><FolderPlus size={18}/></button>
       <input ref={dirInputRef} type="file" webkitdirectory="" directory="" multiple hidden onChange={e => importFiles(e.target.files)}/>
       <input ref={fileInputRef} type="file" accept="audio/*,.flac,.m4a" multiple hidden onChange={e => importFiles(e.target.files)}/>
     </header>
 
     <main className="workspace">
       <aside className="library-panel">
-        <div className="section-label">CARPETAS</div>
-        <button className={`nav-item ${selFolder === null ? 'selected' : ''}`} onClick={() => setSelFolder(null)}><Disc3 size={17}/> Toda la música <span>{tracks.length}</span></button>
+        <div className="section-label">FOLDERS</div>
+        <button className={`nav-item ${selFolder === null ? 'selected' : ''}`} onClick={() => setSelFolder(null)}><Disc3 size={17}/> All Music <span>{tracks.length}</span></button>
         <div className="tree">{renderNode(tree)}</div>
-        <div className="library-bottom"><div className="storage-icon"><FolderOpen size={17}/></div><div><b>Tu música, local</b><small>Guardada en este dispositivo</small></div></div>
+        <div className="library-bottom"><div className="storage-icon"><FolderOpen size={17}/></div><div><b>Your Local Music</b><small>Stored on this device</small></div></div>
       </aside>
 
       <section className="main-panel">
         <div className="content-head">
-          <div><div className="eyebrow">YOUR COLLECTION</div><h1>{selFolder === null ? 'Biblioteca' : selFolder.split('/').pop()}</h1><p>{visibleTracks.length} canciones en esta vista</p></div>
-          <div className="search-box"><Search size={16}/><input aria-label="Buscar" placeholder="Buscar canciones, artistas..." value={query} onChange={e => setQuery(e.target.value)}/></div>
+          <div><div className="eyebrow">YOUR COLLECTION</div><h1>{selFolder === null ? 'Library' : selFolder.split('/').pop()}</h1><p>{visibleTracks.length} tracks in this view</p></div>
+          <div className="search-box"><Search size={16}/><input aria-label="Search" placeholder="Search tracks, artists..." value={query} onChange={e => setQuery(e.target.value)}/></div>
         </div>
-        <div className="toolbar"><span className="table-title">PISTAS</span><div className="toolbar-actions"><button className="subtle-button" disabled={!visibleTracks.length} onClick={() => addIds(visibleTracks.map(t => t.id))}><ListMusic size={15}/> Agregar todo a la lista</button><button className="subtle-button" disabled={busy} onClick={() => dirInputRef.current?.click()}><FolderPlus size={15}/>{busy ? 'Procesando…' : 'Importar carpeta'}</button></div></div>
-        {visibleTracks.length === 0 ? <div className="empty-state"><div className="empty-disc"><Disc3 size={34}/></div><h2>{query ? 'No hay coincidencias' : 'Tu biblioteca empieza acá'}</h2><p>{query ? 'Probá con otro título, artista o álbum.' : 'Importá archivos de audio para crear tu colección personal.'}</p>{!query && <><button className="primary-button" onClick={() => dirInputRef.current?.click()}><FolderPlus size={16}/> Importar carpeta</button><small>MP3 · WAV · FLAC · M4A · OGG · AAC</small></>}</div> :
+        <div className="toolbar"><span className="table-title">TRACKS</span><div className="toolbar-actions"><button className="subtle-button" disabled={!visibleTracks.length} onClick={() => addIds(visibleTracks.map(t => t.id))}><ListMusic size={15}/> Add all to playlist</button><button className="subtle-button" disabled={busy} onClick={() => dirInputRef.current?.click()}><FolderPlus size={15}/>{busy ? 'Processing…' : 'Import folder'}</button></div></div>
+        {visibleTracks.length === 0 ? <div className="empty-state"><div className="empty-disc"><Disc3 size={34}/></div><h2>{query ? 'No matches found' : 'Your library starts here'}</h2><p>{query ? 'Try another title, artist, or album.' : 'Import audio files to build your personal collection.'}</p>{!query && <><button className="primary-button" onClick={() => dirInputRef.current?.click()}><FolderPlus size={16}/> Import folder</button><small>MP3 · WAV · FLAC · M4A · OGG · AAC</small></>}</div> :
           <div className="track-table">
-            <div className="track-row table-header"><span>#</span><span>TÍTULO</span><span>ÁLBUM</span><span>FORMATO</span><span>ACCIONES</span></div>
+            <div className="track-row table-header"><span>#</span><span>TITLE</span><span>ALBUM</span><span>FORMAT</span><span>ACTIONS</span></div>
             {visibleTracks.map((t, i) => <div key={t.id} className={`track-row ${currentId === t.id ? 'active-track' : ''}`}>
               <button className="track-number" onClick={() => playTrack(t.id)}>{currentId === t.id && playing ? <AudioLines size={16}/> : <span>{String(i+1).padStart(2,'0')}</span>}</button>
               <button className="track-info" onClick={() => playTrack(t.id)}><div className="mini-cover">{t.cover ? <img src={trackCoverUrl(t)} /> : <Disc3 size={17}/>}</div><div><b>{t.title}</b><small>{t.artist}</small></div></button>
               <span className="album-cell">{t.album}</span><span className="format-cell">{extOf(t.filename).toUpperCase()}</span>
-              <div className="row-actions">{!t.sample && <button title="Editar etiquetas y portada" onClick={() => openEditor(t)}><Pencil size={15}/></button>}<button title="Agregar a playlist" onClick={() => addToPlaylist(t.id)}><ListMusic size={15}/></button>{!t.sample && <button title="Quitar de biblioteca" onClick={() => deleteTrack(t)}><Trash2 size={15}/></button>}</div>
+              <div className="row-actions">{!t.sample && <button title="Edit tags and cover art" onClick={() => openEditor(t)}><Pencil size={15}/></button>}<button title="Add to playlist" onClick={() => addToPlaylist(t.id)}><ListMusic size={15}/></button>{!t.sample && <button title="Remove from library" onClick={() => deleteTrack(t)}><Trash2 size={15}/></button>}</div>
             </div>)}
           </div>}
       </section>
@@ -361,23 +361,23 @@ export default function App() {
         <div className="hero-art">
           {cover ? <img src={cover} /> : <div className="art-placeholder"><div className="art-ring"><Disc3 size={78} strokeWidth={1}/></div><span>MOODZOUND / HI-FI</span></div>}
         </div>
-        <div className="now-meta"><div><h2>{current?.title || 'Nada en reproducción'}</h2><p>{current?.artist || 'Elegí una canción de tu biblioteca'}</p></div><button className="tiny-button" disabled={!current} onClick={() => current && openEditor(current)}><Pencil size={16}/></button></div>
-        <div className="progress-wrap"><div className="progress-label"><span>{fmt(time)}</span><span>{fmt(duration)}</span></div><input aria-label="Progreso" type="range" min="0" max={duration || 1} value={Math.min(time, duration || 1)} onChange={e => { if(audioRef.current) audioRef.current.currentTime = Number(e.target.value) }}/></div>
+        <div className="now-meta"><div><h2>{current?.title || 'Nothing Playing'}</h2><p>{current?.artist || 'Choose a track from your library'}</p></div><button className="tiny-button" disabled={!current} onClick={() => current && openEditor(current)}><Pencil size={16}/></button></div>
+        <div className="progress-wrap"><div className="progress-label"><span>{fmt(time)}</span><span>{fmt(duration)}</span></div><input aria-label="Playback progress" type="range" min="0" max={duration || 1} value={Math.min(time, duration || 1)} onChange={e => { if(audioRef.current) audioRef.current.currentTime = Number(e.target.value) }}/></div>
         <div className="transport">
-          <button className={shuffle ? 'toggled' : ''} onClick={() => setShuffle(v => !v)} title="Aleatorio"><Shuffle size={17}/></button>
-          <button onClick={() => moveTrack(-1)} title="Anterior"><SkipBack size={20} fill="currentColor"/></button>
-          <button className="play-button" onClick={togglePlay} title={playing ? 'Pausar' : 'Reproducir'}>{playing ? <Pause size={21} fill="currentColor"/> : <Play size={21} fill="currentColor"/>}</button>
-          <button onClick={() => moveTrack(1)} title="Siguiente"><SkipForward size={20} fill="currentColor"/></button>
-          <button className={repeat ? 'toggled' : ''} onClick={() => setRepeat(v => !v)} title="Repetir pista"><Repeat size={17}/></button>
+          <button className={shuffle ? 'toggled' : ''} onClick={() => setShuffle(v => !v)} title="Shuffle"><Shuffle size={17}/></button>
+          <button onClick={() => moveTrack(-1)} title="Previous"><SkipBack size={20} fill="currentColor"/></button>
+          <button className="play-button" onClick={togglePlay} title={playing ? 'Pause' : 'Play'}>{playing ? <Pause size={21} fill="currentColor"/> : <Play size={21} fill="currentColor"/>}</button>
+          <button onClick={() => moveTrack(1)} title="Next"><SkipForward size={20} fill="currentColor"/></button>
+          <button className={repeat ? 'toggled' : ''} onClick={() => setRepeat(v => !v)} title="Repeat track"><Repeat size={17}/></button>
         </div>
-        <div className="volume-row"><Volume2 size={16}/><input aria-label="Volumen" type="range" min="0" max="1" step=".01" value={volume} onChange={e => setVolume(Number(e.target.value))}/></div>
+        <div className="volume-row"><Volume2 size={16}/><input aria-label="Volume" type="range" min="0" max="1" step=".01" value={volume} onChange={e => setVolume(Number(e.target.value))}/></div>
         <div className="queue">
           <div className="queue-head"><select value={activePlaylist} onChange={e => setActivePlaylist(e.target.value)}>{playlists.map(p => <option key={p.id} value={p.id}>{p.name} ({p.trackIds.length})</option>)}</select>
-            <button className="tiny-button" title="Nueva lista" onClick={createPlaylist}><Plus size={15}/></button>
-            {pl && <><button className="tiny-button" title="Renombrar" onClick={() => renamePlaylist(pl)}><Pencil size={13}/></button><button className="tiny-button" title="Eliminar lista" onClick={() => deletePlaylist(pl)}><Trash2 size={13}/></button></>}</div>
-          {queue.length === 0 ? <p className="queue-empty">Lista vacía. Doble clic en una carpeta, o usá la lista (☰) en una pista.</p> : queue.map((t, i) => <div key={t.id} draggable onDragStart={() => dragRef.current = i} onDragOver={e => e.preventDefault()} onDrop={() => { reorder(dragRef.current, i); dragRef.current = null }} className={`queue-row ${currentId === t.id ? 'active-track' : ''}`}>
+            <button className="tiny-button" title="New playlist" onClick={createPlaylist}><Plus size={15}/></button>
+            {pl && <><button className="tiny-button" title="Rename" onClick={() => renamePlaylist(pl)}><Pencil size={13}/></button><button className="tiny-button" title="Delete playlist" onClick={() => deletePlaylist(pl)}><Trash2 size={13}/></button></>}</div>
+          {queue.length === 0 ? <p className="queue-empty">Playlist is empty. Double-click a folder or use the playlist icon (☰) next to a track.</p> : queue.map((t, i) => <div key={t.id} draggable onDragStart={() => dragRef.current = i} onDragOver={e => e.preventDefault()} onDrop={() => { reorder(dragRef.current, i); dragRef.current = null }} className={`queue-row ${currentId === t.id ? 'active-track' : ''}`}>
             <button onClick={() => playTrack(t.id)}><span>{String(i + 1).padStart(2, '0')}</span><div><b>{t.title}</b><small>{t.artist}</small></div></button>
-            <button title="Quitar de la lista" onClick={() => removeFromPlaylist(t.id)}><X size={14}/></button></div>)}
+            <button title="Remove from playlist" onClick={() => removeFromPlaylist(t.id)}><X size={14}/></button></div>)}
         </div>
         <div className="audio-note"><span className="status-dot"/> LOCAL PLAYBACK <span>•</span> BROWSER AUDIO</div>
       </aside>
@@ -390,20 +390,20 @@ export default function App() {
     {cropSrc && <CoverEditor src={cropSrc} onCancel={() => setCropSrc(null)} onDone={blob => { setEditor(e => ({ ...e, cover: blob })); setCropSrc(null) }}/>}
     {editor && <div className="modal-backdrop" onMouseDown={e => e.target === e.currentTarget && setEditor(null)}>
       <div className="editor-modal">
-        <div className="modal-head"><div><span className="eyebrow">LIBRARY EDITOR</span><h2>Editar información</h2></div><button className="icon-button" onClick={() => setEditor(null)}><X size={18}/></button></div>
+        <div className="modal-head"><div><span className="eyebrow">LIBRARY EDITOR</span><h2>Edit Track Information</h2></div><button className="icon-button" onClick={() => setEditor(null)}><X size={18}/></button></div>
         <div className="editor-cover-row">
           <div className="editor-cover">{editor.cover ? <img src={getUrl(`editor-${editor.id}-${editor.updatedAt || 0}`, editor.cover)}/> : <Disc3 size={40}/>}</div>
-          <div><b>Portada del álbum</b><p>Se guarda en la biblioteca MOODZOUND. Para MP3 también podés exportarla embebida.</p><div style={{display:'flex',gap:8}}><button className="subtle-button" onClick={() => coverInputRef.current?.click()}>Elegir imagen</button>{editor.cover && <button className="subtle-button" onClick={() => setCropSrc(editor.cover)}>Ajustar actual</button>}</div><input ref={coverInputRef} hidden type="file" accept="image/*" onChange={e => setEditorCover(e.target.files?.[0])}/></div>
+          <div><b>Album Cover</b><p>Saved to your MOODZOUND library. For MP3 files, you can also export it embedded in the file.</p><div style={{display:'flex',gap:8}}><button className="subtle-button" onClick={() => coverInputRef.current?.click()}>Choose Image</button>{editor.cover && <button className="subtle-button" onClick={() => setCropSrc(editor.cover)}>Adjust Current</button>}</div><input ref={coverInputRef} hidden type="file" accept="image/*" onChange={e => setEditorCover(e.target.files?.[0])}/></div>
         </div>
         <div className="form-grid">
-          <label>TÍTULO<input value={editor.title} onChange={e => setEditor({...editor,title:e.target.value})}/></label>
-          <label>ARTISTA<input value={editor.artist} onChange={e => setEditor({...editor,artist:e.target.value})}/></label>
-          <label>ÁLBUM<input value={editor.album} onChange={e => setEditor({...editor,album:e.target.value})}/></label>
-          <label>AÑO<input value={editor.year} onChange={e => setEditor({...editor,year:e.target.value})}/></label>
-          <label>GÉNERO<input value={editor.genre} onChange={e => setEditor({...editor,genre:e.target.value})}/></label>
+          <label>TITLE<input value={editor.title} onChange={e => setEditor({...editor,title:e.target.value})}/></label>
+          <label>ARTIST<input value={editor.artist} onChange={e => setEditor({...editor,artist:e.target.value})}/></label>
+          <label>ALBUM<input value={editor.album} onChange={e => setEditor({...editor,album:e.target.value})}/></label>
+          <label>YEAR<input value={editor.year} onChange={e => setEditor({...editor,year:e.target.value})}/></label>
+          <label>GENRE<input value={editor.genre} onChange={e => setEditor({...editor,genre:e.target.value})}/></label>
         </div>
-        <div className="metadata-warning"><b>Alcance de esta versión:</b> los cambios se guardan en la biblioteca MOODZOUND. Para MP3, “Exportar MP3 con metadatos” genera una copia nueva con etiquetas ID3 y portada embebida. WAV, FLAC, M4A y OGG todavía no tienen escritura embebida.</div>
-        <div className="modal-actions"><button className="subtle-button" onClick={() => setEditor(null)}>Cancelar</button><button className="subtle-button" disabled={busy || extOf(editor.filename) !== 'mp3'} onClick={exportEditedFile}><Download size={14}/> Exportar MP3</button><button className="primary-button" onClick={saveEditor}>Guardar en MOODZOUND</button></div>
+        <div className="metadata-warning"><b>Version limitations:</b> Changes are saved to the MOODZOUND library. For MP3 files, "Export MP3 with Metadata" creates a new copy with ID3 tags and embedded cover art. WAV, FLAC, M4A, and OGG do not yet support embedded metadata writing.</div>
+        <div className="modal-actions"><button className="subtle-button" onClick={() => setEditor(null)}>Cancel</button><button className="subtle-button" disabled={busy || extOf(editor.filename) !== 'mp3'} onClick={exportEditedFile}><Download size={14}/> Export MP3</button><button className="primary-button" onClick={saveEditor}>Save to MOODZOUND</button></div>
       </div>
     </div>}
   </div>
