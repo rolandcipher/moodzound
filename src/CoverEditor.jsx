@@ -46,23 +46,23 @@ export default function CoverEditor({ src, onCancel, onDone }) {
 
   return <div className="modal-backdrop ce-backdrop">
     <div className="editor-modal ce-modal">
-      <div className="modal-head"><div><span className="eyebrow">COVER EDITOR</span><h2>Ajustar portada</h2></div><button className="icon-button" onClick={onCancel}><X size={18}/></button></div>
+      <div className="modal-head"><div><span className="eyebrow">COVER EDITOR</span><h2>Adjust Cover</h2></div><button className="icon-button" onClick={onCancel}><X size={18}/></button></div>
       <div className="ce-stage">
         <canvas ref={cv} width={SIZE} height={SIZE} onPointerDown={down} onPointerMove={move} onPointerUp={() => drag.current = null} onWheel={wheel}/>
       </div>
-      <p className="ce-hint">Arrastrá para mover · rueda del mouse para zoom · el recorte final es siempre 1:1</p>
+      <p className="ce-hint">Drag to move · Scroll to zoom · Final crop is always 1:1</p>
       <div className="ce-controls">
-        {slider('ZOOM', 'zoom', .05, 8, .01)}{slider('ESTIRAR ANCHO', 'sx', .3, 3, .01)}
-        {slider('ESTIRAR ALTO', 'sy', .3, 3, .01)}{slider('ROTAR', 'rot', -180, 180, 1, '°')}
-        {slider('INCLINAR', 'skew', -60, 60, 1, '°')}
+        {slider('ZOOM', 'zoom', .05, 8, .01)}{slider('STRETCH WIDTH', 'sx', .3, 3, .01)}
+        {slider('STRETCH HEIGHT', 'sy', .3, 3, .01)}{slider('ROTATE', 'rot', -180, 180, 1, '°')}
+        {slider('SKEW', 'skew', -60, 60, 1, '°')}
       </div>
       <div className="modal-actions">
-        <button className="subtle-button" onClick={() => img && setT(fit(img, 'fit'))}>Ajustar</button>
-        <button className="subtle-button" onClick={() => img && setT(fit(img, 'fill'))}>Rellenar</button>
-        <button className="subtle-button" onClick={() => img && setT(fit(img, 'fill'))}>Reiniciar</button>
+        <button className="subtle-button" onClick={() => img && setT(fit(img, 'fit'))}>Fit</button>
+        <button className="subtle-button" onClick={() => img && setT(fit(img, 'fill'))}>Fill</button>
+        <button className="subtle-button" onClick={() => img && setT(fit(img, 'fill'))}>Reset</button>
         <span style={{ flex: 1 }}/>
-        <button className="subtle-button" onClick={onCancel}>Cancelar</button>
-        <button className="primary-button" disabled={!img} onClick={done}>Recortar y usar</button>
+        <button className="subtle-button" onClick={onCancel}>Cancel</button>
+        <button className="primary-button" disabled={!img} onClick={done}>Crop & Use</button>
       </div>
     </div>
   </div>
